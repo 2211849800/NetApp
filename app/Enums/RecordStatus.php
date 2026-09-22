@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Enums;
+
+enum RecordStatus: string
+{
+    case Active = 'active';
+    case Inactive = 'inactive';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Active => 'Active',
+            self::Inactive => 'Inactive',
+        };
+    }
+
+    public function labelAr(): string
+    {
+        return match ($this) {
+            self::Active => 'نشط',
+            self::Inactive => 'معطل',
+        };
+    }
+}
