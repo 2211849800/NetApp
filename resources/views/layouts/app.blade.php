@@ -87,14 +87,107 @@
     <!-- Mobile Drawer Overlay JS -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
             const toggleBtn = document.getElementById('sidebarToggle');
-            const sidebar = document.querySelector('aside');
-            
-            if (toggleBtn && sidebar) {
-                toggleBtn.addEventListener('click', () => {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebar.classList.toggle('translate-x-0');
+            const closeBtn = document.getElementById('sidebarClose');
+            const sidebarLinks = sidebar?.querySelectorAll('a');
+
+            // Check if screen is desktop (lg and above)
+            const isDesktop = window.matchMedia('(min-width: 1024px)');
+
+            // Open sidebar function
+            function openSidebar() {
+                if (!sidebar || !overlay) return;
+                sidebar.classList.remove('translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('hidden');
+                // Small delay to allow display:block to apply before opacity transition
+                requestAnimationFrame(() => {
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
                 });
+                // Lock body scroll on mobile
+                if (!isDesktop.matches) {
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+
+            // Close sidebar function
+            function closeSidebar() {
+                if (!sidebar || !overlay) return;
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0');
+                // Wait for transition to finish before hiding
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300);
+                // Unlock body scroll
+                document.body.style.overflow = '';
+            }
+
+            // Toggle button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    if (sidebar.classList.contains('translate-x-full')) {
+                        openSidebar();
+                    } else {
+                        closeSidebar();
+                    }
+                });
+            }
+
+            // Close button click
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeSidebar);
+            }
+
+            // Overlay click
+            if (overlay) {
+                overlay.addEventListener('click', closeSidebar);
+            }
+
+            // Escape key press
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !sidebar.classList.contains('translate-x-full')) {
+                    closeSidebar();
+                }
+            });
+
+            // Close on link click (mobile only)
+            if (sidebarLinks) {
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (!isDesktop.matches) {
+                            closeSidebar();
+                        }
+                    });
+                });
+            }
+
+            // Sync state with screen size changes
+            isDesktop.addEventListener('change', (e) => {
+                if (e.matches) {
+                    // Desktop: ensure sidebar is visible
+                    sidebar.classList.remove('translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    overlay.classList.add('hidden');
+                    document.body.style.overflow = '';
+                } else {
+                    // Mobile: hide sidebar by default
+                    sidebar.classList.remove('translate-x-0');
+                    sidebar.classList.add('translate-x-full');
+                    overlay.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // Initial state check
+            if (!isDesktop.matches) {
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('translate-x-full');
             }
         });
     </script>

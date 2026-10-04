@@ -1,49 +1,23 @@
-# Base image: PHP 8.3 with FPM
-FROM php:8.3-fpm
+FROM php:8.2-cli
 
-# Install system dependencies + Nginx + SQLite
+# تثبيت الملحقات الأساسية
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libsqlite3-dev \
-    zip \
-    unzip \
-    nginx \
-    supervisor \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    git unzip libpng-dev libonig-dev libxml2-dev zip curl \
+    && docker-php-ext-install pdo_mysql mbstring gd
 
-# Install PHP extensions required by Laravel (MySQL + SQLite)
-RUN docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd
-
-# Install Composer
+# تثبيت Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/html
 
-# Copy project files
-COPY . /var/www
+# نسخ باقي ملفات المشروع
+COPY . .
 
-# Install Composer dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-
-# Set permissions for storage and cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# Copy Nginx config for Fly.io (single container, port 8080)
-COPY docker/nginx.conf /etc/nginx/sites-available/default
-
-# Copy Supervisor config to manage both Nginx and PHP-FPM
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy startup script
-COPY docker/start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
+# تثبيت الحزم وإعطاء الصلاحيات
+RUN composer install --no-dev --optimize-autoloader
+RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 8080
 
-CMD ["/usr/local/bin/start.sh"]
+# تشغيل سيرفر PHP المدمج على المنفذ 8080 مباشرة
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]

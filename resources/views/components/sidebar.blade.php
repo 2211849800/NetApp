@@ -15,7 +15,10 @@
     });
 @endphp
 
-<aside class="fixed inset-y-0 right-0 z-50 w-64 bg-[#2C1D54] text-white flex flex-col justify-between transition-transform duration-300 transform lg:translate-x-0 shadow-2xl">
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
+
+<aside id="sidebar" class="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] sm:w-64 bg-[#2C1D54] text-white flex flex-col justify-between transition-transform duration-300 transform translate-x-full lg:translate-x-0 shadow-2xl">
     <!-- Top Brand Header -->
     <div class="p-5 flex flex-col items-center border-b border-purple-900/50">
         <div class="flex items-center gap-3 w-full">
@@ -24,10 +27,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
-            <div class="text-right overflow-hidden">
+            <div class="text-right overflow-hidden flex-1">
                 <h1 class="font-bold text-base leading-tight text-white tracking-wide">ميقا الجديدة</h1>
                 <p class="text-[10px] text-purple-300 font-light truncate">للاتصالات والتقنية</p>
             </div>
+            <!-- Close Button (Mobile Only) -->
+            <button id="sidebarClose" class="lg:hidden p-2 text-purple-300 hover:text-white hover:bg-purple-800/40 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
     </div>
 
