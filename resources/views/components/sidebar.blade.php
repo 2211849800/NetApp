@@ -22,11 +22,7 @@
     <!-- Top Brand Header -->
     <div class="p-5 flex flex-col items-center border-b border-purple-900/50">
         <div class="flex items-center gap-3 w-full">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-purple-900/40 shrink-0">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="MEGA ALJADIDA Logo" class="w-12 h-12 object-contain shrink-0">
             <div class="text-right overflow-hidden flex-1">
                 <h1 class="font-bold text-base leading-tight text-white tracking-wide">ميقا الجديدة</h1>
                 <p class="text-[10px] text-purple-300 font-light truncate">للاتصالات والتقنية</p>
