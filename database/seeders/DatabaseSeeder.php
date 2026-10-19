@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             MockPackageSeeder::class,
             MockSubscriberSeeder::class,
             OperationalDemoSeeder::class,
+            UsageSnapshotSeeder::class,
         ]);
 
         // Legacy test subscriber (API/mobile — not for web panel)
@@ -23,7 +24,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Test Subscriber',
                 'phone' => '0900000099',
-                'password' => bcrypt('password'),
+                'password' => bcrypt(env('DEMO_PASSWORD', 'password')),
                 'type' => 'subscriber',
             ],
         );

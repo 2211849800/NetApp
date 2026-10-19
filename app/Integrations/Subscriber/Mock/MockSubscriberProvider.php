@@ -17,6 +17,7 @@ use App\Exceptions\Subscriber\SubscriberProviderUnavailableException;
 use App\Exceptions\Subscriber\SubscriberProvisionFailedException;
 use App\Exceptions\Subscriber\SubscriberSuspendedException;
 use App\Models\MockSubscriber;
+use App\Models\UsageSnapshot;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -137,6 +138,38 @@ class MockSubscriberProvider implements SubscriberProviderInterface
             usedGb: (float) $subscriber->borrowing_used_gb,
             expiresAt: $subscriber->borrowing_expires_at?->toIso8601String(),
         );
+    }
+
+    /**
+     * Get daily usage history for the last N days.
+     *
+     * @return array<int, array{date: string, used_gb: float}>
+     */
+    public function getUsageHistory(string $contractNumber, int $days = 30): array
+    {
+        $snapshots = UsageSnapshot::where('contract_number', $contractNumber)
+            ->orderBy('usage_date')
+            ->get();
+
+        if ($snapshots->isEmpty()) {
+            return [];
+        }
+
+        $history = [];
+        $startDate = now()->subDays($days - 1)->startOfDay();
+        $snapshotMap = $snapshots->keyBy('usage_date');
+
+        for ($i = 0; $i < $days; $i++) {
+            $date = $startDate->copy()->addDays($i)->toDateString();
+            $snapshot = $snapshotMap->get($date);
+
+            $history[] = [
+                'date' => $date,
+                'used_gb' => $snapshot ? (float) $snapshot->used_gb : 0.0,
+            ];
+        }
+
+        return $history;
     }
 
     /**

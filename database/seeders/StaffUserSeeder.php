@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Hash;
  * Admin login:
  *   username: admin
  *   email:    admin@netapp.com
- *   password: password
+ *   password: DEMO_PASSWORD env var (default: password)
  */
 class StaffUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Hash::make('password');
+        $password = Hash::make(env('DEMO_PASSWORD', 'password'));
 
         $admin = User::updateOrCreate(
             ['username' => 'admin'],

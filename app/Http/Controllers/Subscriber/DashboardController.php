@@ -6,6 +6,8 @@ use App\Contracts\SubscriberProviderInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
 use App\Models\Payment;
+use App\Services\Subscriber\SubscriberDashboardService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,24 +16,21 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly SubscriberProviderInterface $subscriberProvider,
+        private readonly SubscriberDashboardService $dashboardService,
     ) {}
+
+    private function contractNumber(Request $request): string
+    {
+        $user = $request->user();
+        return (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+    }
 
     public function index(Request $request): View
     {
         $user = $request->user();
-        $contractNumber = (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+        $contractNumber = $this->contractNumber($request);
 
-        try {
-            $subscriber = $this->subscriberProvider->findSubscriberByContract($contractNumber);
-            $subscription = $this->subscriberProvider->getSubscription($contractNumber);
-            $usage = $this->subscriberProvider->getUsage($contractNumber);
-            $borrowing = $this->subscriberProvider->getBorrowingStatus($contractNumber);
-        } catch (\Throwable $e) {
-            $subscriber = null;
-            $subscription = null;
-            $usage = null;
-            $borrowing = null;
-        }
+        $dashboard = $this->dashboardService->build($contractNumber);
 
         $packages = $this->subscriberProvider->listAvailablePackages();
         $complaints = Complaint::where('user_id', $user->id)
@@ -47,14 +46,19 @@ class DashboardController extends Controller
         return view('subscriber.dashboard', compact(
             'user',
             'contractNumber',
-            'subscriber',
-            'subscription',
-            'usage',
-            'borrowing',
+            'dashboard',
             'packages',
             'complaints',
             'payments'
         ));
+    }
+
+    public function data(Request $request): JsonResponse
+    {
+        $contractNumber = $this->contractNumber($request);
+        $dashboard = $this->dashboardService->build($contractNumber);
+
+        return response()->json($dashboard)->header('Cache-Control', 'no-store');
     }
 
     public function recharge(Request $request): RedirectResponse
@@ -63,8 +67,7 @@ class DashboardController extends Controller
             'package_id' => ['required', 'string'],
         ]);
 
-        $user = $request->user();
-        $contractNumber = (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+        $contractNumber = $this->contractNumber($request);
 
         try {
             $result = $this->subscriberProvider->recharge($contractNumber, $validated['package_id']);
@@ -77,8 +80,7 @@ class DashboardController extends Controller
 
     public function activateBorrowing(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        $contractNumber = (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+        $contractNumber = $this->contractNumber($request);
 
         try {
             $this->subscriberProvider->activateEmergencyBorrowing($contractNumber);
@@ -100,7 +102,7 @@ class DashboardController extends Controller
         ]);
 
         $user = $request->user();
-        $contractNumber = (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+        $contractNumber = $this->contractNumber($request);
 
         Complaint::create([
             'user_id' => $user->id,

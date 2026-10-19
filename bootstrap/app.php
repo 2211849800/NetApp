@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectGuestsTo('/login');
 
+        $middleware->trustProxies(at: '*');
+
         $middleware->redirectUsersTo(function (Request $request) {
             return app(RoleRedirectService::class)->dashboardRouteFor($request->user());
         });

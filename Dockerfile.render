@@ -1,0 +1,29 @@
+# Demo image for Render free tier (PHP 8.3 is required: composer.lock platform = ^8.3)
+FROM php:8.3-cli
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git unzip libpng-dev libonig-dev libxml2-dev libzip-dev \
+    && docker-php-ext-install mbstring gd zip bcmath \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Install dependencies first (better layer caching)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+
+COPY . .
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
+    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs database \
+    && chmod -R 775 storage bootstrap/cache database
+
+COPY docker/render-entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+# artisan serve honours this: several PHP workers instead of one
+ENV PHP_CLI_SERVER_WORKERS=4
+EXPOSE 10000
+
+CMD ["entrypoint"]

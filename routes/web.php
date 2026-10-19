@@ -179,6 +179,7 @@ Route::middleware(['auth', 'role:subscriber'])
     ->name('subscriber.')
     ->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Subscriber\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/data', [\App\Http\Controllers\Subscriber\DashboardController::class, 'data'])->name('dashboard.data');
         Route::post('/recharge', [\App\Http\Controllers\Subscriber\DashboardController::class, 'recharge'])->name('recharge.submit');
         Route::post('/borrow', [\App\Http\Controllers\Subscriber\DashboardController::class, 'activateBorrowing'])->name('borrow.submit');
         Route::post('/complaints', [\App\Http\Controllers\Subscriber\DashboardController::class, 'storeComplaint'])->name('complaints.submit');

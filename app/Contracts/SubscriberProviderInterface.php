@@ -34,6 +34,13 @@ interface SubscriberProviderInterface
 
     public function getBorrowingStatus(string $contractNumber): BorrowingData;
 
+    /**
+     * Get daily usage history for the last N days.
+     *
+     * @return array<int, array{date: string, used_gb: float}>
+     */
+    public function getUsageHistory(string $contractNumber, int $days = 30): array;
+
     public function recharge(string $contractNumber, string $packageId, ?string $idempotencyKey = null): RechargeResult;
 
     public function changePackage(string $contractNumber, string $packageId, ?string $idempotencyKey = null): PackageChangeResult;
