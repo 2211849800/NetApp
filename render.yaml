@@ -31,3 +31,5 @@ services:
         value: stderr
       - key: DEMO_PASSWORD
         sync: false
+      - key: DEMO_SEED_ENABLED
+        value: "true"

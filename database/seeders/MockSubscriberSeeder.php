@@ -15,7 +15,7 @@ class MockSubscriberSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->environment('production')) {
+        if (app()->environment('production') && ! filter_var(env('DEMO_SEED_ENABLED', false), FILTER_VALIDATE_BOOL)) {
             return;
         }
 
