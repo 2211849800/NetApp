@@ -1,9 +1,9 @@
-FROM php:8.2-cli
+FROM php:8.3-cli
 
 # تثبيت الملحقات الأساسية
 RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev zip curl \
-    && docker-php-ext-install pdo_mysql mbstring gd
+    git unzip libpng-dev libonig-dev libxml2-dev libsqlite3-dev zip curl \
+    && docker-php-ext-install pdo_mysql pdo_sqlite mbstring gd
 
 # تثبيت Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

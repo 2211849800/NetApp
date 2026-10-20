@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Contracts\SubscriberProviderInterface;
+use App\Exceptions\Subscriber\SubscriberNotFoundException;
 use Database\Seeders\MockSubscriberSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\StaffUserSeeder;
@@ -82,5 +84,40 @@ class SubscriberApiAccessControlTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.contract_number', 'TEST-100001');
+    }
+
+    public function test_legacy_api_does_not_return_provider_exception_details(): void
+    {
+        $provider = \Mockery::mock(SubscriberProviderInterface::class);
+        $provider->shouldReceive('findSubscriberByContract')
+            ->once()
+            ->andThrow(new SubscriberNotFoundException('provider-secret-internal-detail'));
+        $this->app->instance(SubscriberProviderInterface::class, $provider);
+
+        $response = app(\App\Http\Controllers\Api\SubscriberApiController::class)
+            ->show('TEST-100001');
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertSame('Subscriber not found.', $response->getData(true)['error']);
+        $this->assertStringNotContainsString('provider-secret-internal-detail', $response->getContent());
+    }
+
+    public function test_self_service_api_does_not_return_unexpected_exception_details(): void
+    {
+        $subscriber = User::factory()->subscriber()->create([
+            'contract_number' => 'TEST-100001',
+        ]);
+        $provider = \Mockery::mock(SubscriberProviderInterface::class);
+        $provider->shouldReceive('findSubscriberByContract')
+            ->once()
+            ->andThrow(new \RuntimeException('database-password-internal-detail'));
+        $this->app->instance(SubscriberProviderInterface::class, $provider);
+
+        $response = $this->actingAs($subscriber, 'sanctum')
+            ->getJson('/api/v1/subscriber/profile');
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'An unexpected error occurred.')
+            ->assertDontSee('database-password-internal-detail');
     }
 }

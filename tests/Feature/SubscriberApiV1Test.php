@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Payment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -81,6 +82,14 @@ class SubscriberApiV1Test extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('status', 'success');
         $response->assertJsonPath('data.contract_number', 'TEST-100001');
+        $this->assertDatabaseHas('payments', [
+            'user_id' => $subscriber->id,
+            'contract_number' => 'TEST-100001',
+            'package_id' => 'PKG-70',
+            'gateway' => 'api',
+            'amount' => 70.00,
+            'status' => 'completed',
+        ]);
     }
 
     public function test_subscriber_web_portal_renders_successfully(): void

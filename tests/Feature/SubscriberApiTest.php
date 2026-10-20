@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\MockSubscriber;
+use App\Models\Payment;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\StaffUserSeeder;
@@ -186,6 +187,16 @@ class SubscriberApiTest extends TestCase
                     'package_id' => 'PKG-100',
                 ],
             ]);
+
+        $this->assertDatabaseHas('payments', [
+            'reference' => $response->json('data.transaction_id'),
+            'contract_number' => '100005',
+            'package_id' => 'PKG-100',
+            'gateway' => 'api',
+            'amount' => 100.00,
+            'status' => 'completed',
+            'processed_by' => $this->adminUser->id,
+        ]);
     }
 
     public function test_recharge_fails_for_suspended_subscriber_with_403(): void
@@ -207,6 +218,11 @@ class SubscriberApiTest extends TestCase
             ->assertJson([
                 'success' => false,
             ]);
+
+        $this->assertDatabaseMissing('payments', [
+            'contract_number' => '100006',
+            'status' => 'completed',
+        ]);
     }
 
     public function test_change_package_fails_for_same_package_with_422(): void
@@ -287,5 +303,6 @@ class SubscriberApiTest extends TestCase
         $txnId2 = $resp2->json('data.transaction_id');
 
         $this->assertEquals($txnId1, $txnId2);
+        $this->assertSame(1, Payment::where('reference', $txnId1)->count());
     }
 }

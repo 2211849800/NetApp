@@ -35,6 +35,7 @@ class Payment extends Model
         'onepay' => 'OnePay',
         'bank_transfer' => 'تحويل بنكي',
         'cash' => 'نقدي',
+        'api' => 'API',
     ];
 
     public const STATUSES = [

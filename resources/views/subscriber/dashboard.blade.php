@@ -526,4 +526,5 @@ function dashboard() {
     };
 }
 </script>
+@endpush
 @endsection

@@ -11,6 +11,7 @@ use App\Exceptions\Subscriber\SubscriberSuspendedException;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Internal API controller for subscriber operations.
@@ -39,7 +40,7 @@ class SubscriberApiController extends Controller
         } catch (SubscriberNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ], 404);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
@@ -61,7 +62,7 @@ class SubscriberApiController extends Controller
         } catch (SubscriberNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ], 404);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
@@ -83,7 +84,7 @@ class SubscriberApiController extends Controller
         } catch (SubscriberNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ], 404);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
@@ -105,7 +106,7 @@ class SubscriberApiController extends Controller
         } catch (SubscriberNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ], 404);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
@@ -133,11 +134,11 @@ class SubscriberApiController extends Controller
                 'data' => $result->toArray(),
             ]);
         } catch (SubscriberNotFoundException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 404);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 404);
         } catch (SubscriberSuspendedException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 403);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 403);
         } catch (RechargeFailedException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 422);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
         }
@@ -164,11 +165,11 @@ class SubscriberApiController extends Controller
                 'data' => $result->toArray(),
             ]);
         } catch (SubscriberNotFoundException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 404);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 404);
         } catch (SubscriberSuspendedException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 403);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 403);
         } catch (PackageChangeFailedException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'error' => $this->safeErrorMessage($e)], 422);
         } catch (SubscriberProviderUnavailableException $e) {
             return $this->handleProviderUnavailable($e);
         }
@@ -180,11 +181,25 @@ class SubscriberApiController extends Controller
     private function handleProviderUnavailable(SubscriberProviderUnavailableException $e): JsonResponse
     {
         $status = str_contains(strtolower($e->getMessage()), 'timed out') ? 504 : 503;
+        Log::warning('Subscriber provider is unavailable.', ['exception' => $e]);
 
         return response()->json([
             'success' => false,
-            'error' => $e->getMessage(),
+            'error' => 'Subscriber service is temporarily unavailable.',
         ], $status);
+    }
+
+    private function safeErrorMessage(\Throwable $e): string
+    {
+        Log::warning('Subscriber API operation failed.', ['exception' => $e]);
+
+        return match (true) {
+            $e instanceof SubscriberNotFoundException => 'Subscriber not found.',
+            $e instanceof SubscriberSuspendedException => 'Subscriber account is suspended.',
+            $e instanceof RechargeFailedException => 'Recharge could not be completed.',
+            $e instanceof PackageChangeFailedException => 'Package change could not be completed.',
+            default => 'Subscriber operation could not be completed.',
+        };
     }
 }
 
