@@ -6,53 +6,71 @@
 <div class="space-y-6">
     <x-admin.page-header title="لوحة تحكم المدير" subtitle="نظرة عامة على أداء المنصة" />
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         @foreach ([
-            ['label' => 'إجمالي المشتركين', 'value' => $stats['total_subscribers'], 'color' => 'blue', 'icon' => 'users', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين'],
-            ['label' => 'المشتركون النشطون', 'value' => $stats['active_subscribers'], 'color' => 'green', 'icon' => 'smile', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين'],
-            ['label' => 'طلبات الشحن المعلّقة', 'value' => $stats['pending_recharges'], 'color' => 'orange', 'icon' => 'clock', 'url' => route('staff.recharges.index', ['status' => 'pending']), 'detail' => 'مراجعة الطلبات'],
-            ['label' => 'الشكاوى المفتوحة', 'value' => $stats['open_complaints'], 'color' => 'amber', 'icon' => 'message', 'url' => route('staff.complaints.index'), 'detail' => 'عرض الشكاوى'],
-            ['label' => 'إجمالي الموظفين', 'value' => $stats['total_employees'], 'color' => 'indigo', 'icon' => 'users', 'url' => route('admin.employees.index'), 'detail' => 'إدارة الموظفين'],
-            ['label' => 'الباقات النشطة', 'value' => $stats['active_packages'], 'color' => 'violet', 'icon' => 'package', 'url' => route('admin.packages.index'), 'detail' => 'إدارة الباقات'],
+            ['label' => 'إجمالي المشتركين', 'value' => $stats['total_subscribers'], 'hint' => '+' . number_format($stats['new_subscribers_this_week']) . ' مشترك جديد هذا الأسبوع', 'color' => 'teal', 'icon' => 'users', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين', 'chart' => $stats['subscribers_by_day']],
+            ['label' => 'المشتركون النشطون', 'value' => $stats['active_subscribers'], 'hint' => 'حساب مشترك بحالة نشطة', 'color' => 'blue', 'icon' => 'clock', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين', 'chart' => $stats['active_subscribers_by_day']],
+            ['label' => 'طلبات الشحن المعلّقة', 'value' => $stats['pending_recharges'], 'hint' => 'طلبات بانتظار المراجعة', 'color' => 'orange', 'icon' => 'bag', 'url' => route('staff.recharges.index', ['status' => 'pending']), 'detail' => 'مراجعة الطلبات', 'chart' => $stats['pending_recharges_by_day']],
+            ['label' => 'الشكاوى المفتوحة', 'value' => $stats['open_complaints'], 'hint' => number_format($stats['open_complaints']) . ' من ' . number_format($stats['total_complaints']) . ' شكوى', 'color' => 'red', 'icon' => 'pulse', 'url' => route('staff.complaints.index'), 'detail' => 'عرض الشكاوى', 'progress' => $stats['total_complaints'] > 0 ? min(100, round($stats['open_complaints'] / $stats['total_complaints'] * 100)) : 0],
+            ['label' => 'إجمالي الموظفين', 'value' => $stats['total_employees'], 'hint' => number_format($stats['active_employees']) . ' حساب نشط', 'color' => 'green', 'icon' => 'users', 'url' => route('admin.employees.index'), 'detail' => 'إدارة الموظفين', 'progress' => $stats['total_employees'] > 0 ? min(100, round($stats['active_employees'] / $stats['total_employees'] * 100)) : 0],
+            ['label' => 'الباقات النشطة', 'value' => $stats['active_packages'], 'hint' => number_format($stats['active_packages']) . ' من ' . number_format($stats['total_packages']) . ' باقة', 'color' => 'purple', 'icon' => 'eye', 'url' => route('admin.packages.index'), 'detail' => 'إدارة الباقات', 'progress' => $stats['total_packages'] > 0 ? min(100, round($stats['active_packages'] / $stats['total_packages'] * 100)) : 0],
         ] as $card)
             <a href="{{ $card['url'] }}"
                aria-label="{{ $card['label'] }}: {{ number_format($card['value']) }}. {{ $card['detail'] }}"
-               class="group relative flex min-h-32 flex-col justify-between overflow-hidden rounded-2xl text-white shadow-sm transition duration-200 ease-out hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 focus-visible:ring-offset-2 active:scale-[.99]
-               {{ $card['color'] === 'blue' ? 'bg-[#4f79bc]' : '' }}
-               {{ $card['color'] === 'green' ? 'bg-[#00a765]' : '' }}
-               {{ $card['color'] === 'orange' ? 'bg-[#f39a0b]' : '' }}
-               {{ $card['color'] === 'amber' ? 'bg-[#d98b08]' : '' }}
-               {{ $card['color'] === 'indigo' ? 'bg-[#526fc0]' : '' }}
-               {{ $card['color'] === 'violet' ? 'bg-[#7650b7]' : '' }}">
-                <div class="relative flex flex-1 items-start justify-between gap-4 px-5 py-4 sm:px-6">
-                    <div class="min-w-0 text-right">
-                        <p class="text-2xl font-semibold leading-none tabular-nums">{{ number_format($card['value']) }}</p>
-                        <p class="mt-3 text-sm font-bold leading-6 text-white/95">{{ $card['label'] }}</p>
-                    </div>
-
-                    <div class="shrink-0 text-white/35 transition duration-200 group-hover:scale-110 group-hover:text-white/55" aria-hidden="true">
+               class="group flex min-h-[116px] flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-[0_2px_7px_rgba(15,23,42,0.045)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[.995] sm:p-5">
+                <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105
+                        {{ $card['color'] === 'teal' ? 'bg-teal-50 text-teal-500' : '' }}
+                        {{ $card['color'] === 'blue' ? 'bg-blue-50 text-blue-500' : '' }}
+                        {{ $card['color'] === 'orange' ? 'bg-orange-50 text-orange-500' : '' }}
+                        {{ $card['color'] === 'red' ? 'bg-red-50 text-red-500' : '' }}
+                        {{ $card['color'] === 'green' ? 'bg-green-50 text-green-600' : '' }}
+                        {{ $card['color'] === 'purple' ? 'bg-purple-50 text-purple-500' : '' }}" aria-hidden="true">
                         @if ($card['icon'] === 'users')
-                            <svg class="h-14 w-14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11a4 4 0 1 0-3.9-4.9A5.5 5.5 0 0 1 13 10c0 .3 0 .6-.1.9.9.1 2 .1 3.1.1ZM8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-6 1.7-6 3.8V20h12v-3.2C14 14.7 11.3 13 8 13Zm8.5.1c-.6 0-1.2.1-1.8.2 1.4.9 2.3 2.1 2.3 3.5V20H22v-3.1c0-2.1-2.5-3.8-5.5-3.8Z"/></svg>
-                        @elseif ($card['icon'] === 'smile')
-                            <svg class="h-14 w-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 8v6M23 11h-6"/></svg>
                         @elseif ($card['icon'] === 'clock')
-                            <svg class="h-14 w-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                        @elseif ($card['icon'] === 'message')
-                            <svg class="h-14 w-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg>
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        @elseif ($card['icon'] === 'bag')
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l1 13H4L5 8ZM9 8V6a3 3 0 0 1 6 0v2"/><path d="M9 12a3 3 0 0 0 6 0"/></svg>
+                        @elseif ($card['icon'] === 'pulse')
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
                         @else
-                            <svg class="h-14 w-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9-5-9 5v11h18V8ZM3 8l9 5 9-5M12 13v6"/></svg>
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                         @endif
                     </div>
+
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+                        <p class="mt-0.5 text-2xl font-bold leading-tight tracking-tight text-slate-900 tabular-nums">{{ number_format($card['value']) }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
+                    </div>
+
+                    @if (isset($card['chart']))
+                        @php($maxChartValue = max($card['chart']) ?: 1)
+                        <div class="flex h-9 w-16 shrink-0 items-end justify-end gap-0.5" aria-label="النشاط اليومي خلال آخر سبعة أيام">
+                            @foreach ($card['chart'] as $bar)
+                                <span class="w-1 rounded-full transition-opacity duration-200 group-hover:opacity-70
+                                    {{ $card['color'] === 'teal' ? 'bg-teal-300' : '' }}
+                                    {{ $card['color'] === 'blue' ? 'bg-blue-300' : '' }}
+                                    {{ $card['color'] === 'orange' ? 'bg-orange-300' : '' }}"
+                                    style="height: {{ max(12, (int) round($bar / $maxChartValue * 100)) }}%"></span>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
-                <div class="flex items-center justify-center gap-2 bg-black/15 px-4 py-2 text-sm font-semibold text-white/95 transition-colors group-hover:bg-black/25">
-                    <span>{{ $card['detail'] }}</span>
-                    <svg class="h-4 w-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm1.7-11.7a1 1 0 0 0-1.4 1.4L11.6 9H7a1 1 0 1 0 0 2h4.6l-1.3 1.3a1 1 0 1 0 1.4 1.4l3-3a1 1 0 0 0 0-1.4l-3-3Z" clip-rule="evenodd"/></svg>
-                </div>
+                @if (isset($card['progress']))
+                    <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="{{ $card['hint'] }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $card['progress'] }}">
+                        <div class="h-full rounded-full transition-all duration-300 group-hover:brightness-90
+                            {{ $card['color'] === 'red' ? 'bg-red-500' : '' }}
+                            {{ $card['color'] === 'green' ? 'bg-green-500' : '' }}
+                            {{ $card['color'] === 'purple' ? 'bg-purple-500' : '' }}"
+                            style="width: {{ $card['progress'] }}%"></div>
+                    </div>
+                @endif
             </a>
         @endforeach
     </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @can('manage_packages')
         <a href="{{ route('admin.packages.index') }}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:border-purple-200 transition shadow-sm">

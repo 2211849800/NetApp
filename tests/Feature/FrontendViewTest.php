@@ -34,6 +34,9 @@ class FrontendViewTest extends TestCase
         $response->assertSee(route('admin.employees.index'));
         $response->assertSee(route('admin.packages.index'));
         $response->assertSee('aria-label="إجمالي المشتركين: 0. عرض المشتركين"', false);
+        $response->assertSee('rounded-xl border border-slate-200 bg-white p-4', false);
+        $response->assertSee('role="progressbar"', false);
+        $response->assertSee('aria-valuenow=', false);
     }
 
     public function test_subscribers_page_renders_for_authorized_staff(): void
