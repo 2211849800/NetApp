@@ -6,9 +6,41 @@
 <div class="space-y-6">
     <x-admin.page-header title="لوحة تحكم المدير" subtitle="نظرة عامة على أداء المنصة" />
 
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="text-sm font-medium text-slate-500">الإيرادات المحصلة · آخر {{ $stats['period_days'] }} يوم</p>
+                <form method="GET" action="{{ route('admin.dashboard') }}" class="flex items-center gap-2 text-sm">
+                    <label for="period" class="text-slate-500">الفترة</label>
+                    <select id="period" name="period" onchange="this.form.submit()" class="rounded-lg border-slate-300 py-1.5 text-sm">
+                        <option value="7" @selected($stats['period_days'] === 7)>٧ أيام</option>
+                        <option value="30" @selected($stats['period_days'] === 30)>٣٠ يوم</option>
+                    </select>
+                </form>
+            </div>
+            <div class="mt-1 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <p class="text-3xl font-bold tabular-nums text-slate-900">{{ number_format((float) $stats['revenue_period'], 2) }} <span class="text-base font-medium">د.ل</span></p>
+                    @php($revenueDelta = (float) $stats['revenue_period'] - (float) $stats['revenue_previous_period'])
+                    <p class="mt-1 text-sm {{ $revenueDelta >= 0 ? 'text-emerald-700' : 'text-red-600' }}">{{ $revenueDelta >= 0 ? '↑' : '↓' }} {{ number_format(abs($revenueDelta), 2) }} د.ل مقارنة بالفترة السابقة</p>
+                </div>
+                <a href="{{ route('staff.payments.index') }}" class="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">عرض المدفوعات</a>
+            </div>
+        </section>
+        <section class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 class="font-semibold text-slate-900">تحتاج متابعة</h2>
+            <div class="mt-3 space-y-2 text-sm">
+                <a class="flex justify-between gap-3 text-slate-700 hover:text-blue-700" href="{{ route('staff.recharges.index', ['status' => 'pending']) }}"><span>طلبات شحن أقدم من ٢٤ ساعة</span><strong>{{ number_format($stats['stale_recharges']) }}</strong></a>
+                <a class="flex justify-between gap-3 text-slate-700 hover:text-blue-700" href="{{ route('staff.complaints.index') }}"><span>شكاوى مفتوحة أقدم من ٤٨ ساعة</span><strong>{{ number_format($stats['stale_complaints']) }}</strong></a>
+            </div>
+        </section>
+    </div>
+    <p class="text-xs text-slate-500">المقارنة تغطي الفترة المحددة مقابل الفترة السابقة المماثلة. الإيرادات محسوبة من المدفوعات المكتملة فقط.</p>
+
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        @php($subscriberDelta = $stats['new_subscribers_period'] - $stats['new_subscribers_previous_period'])
         @foreach ([
-            ['label' => 'إجمالي المشتركين', 'value' => $stats['total_subscribers'], 'hint' => '+' . number_format($stats['new_subscribers_this_week']) . ' مشترك جديد هذا الأسبوع', 'color' => 'teal', 'icon' => 'users', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين', 'chart' => $stats['subscribers_by_day']],
+            ['label' => 'إجمالي المشتركين', 'value' => $stats['total_subscribers'], 'hint' => '+' . number_format($stats['new_subscribers_period']) . ' مشترك خلال ' . $stats['period_days'] . ' يوم · ' . ($subscriberDelta >= 0 ? '+' : '') . number_format($subscriberDelta) . ' عن الفترة السابقة', 'color' => 'teal', 'icon' => 'users', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين', 'chart' => $stats['subscribers_by_day']],
             ['label' => 'المشتركون النشطون', 'value' => $stats['active_subscribers'], 'hint' => 'حساب مشترك بحالة نشطة', 'color' => 'blue', 'icon' => 'clock', 'url' => route('staff.subscribers.index'), 'detail' => 'عرض المشتركين', 'chart' => $stats['active_subscribers_by_day']],
             ['label' => 'طلبات الشحن المعلّقة', 'value' => $stats['pending_recharges'], 'hint' => 'طلبات بانتظار المراجعة', 'color' => 'orange', 'icon' => 'bag', 'url' => route('staff.recharges.index', ['status' => 'pending']), 'detail' => 'مراجعة الطلبات', 'chart' => $stats['pending_recharges_by_day']],
             ['label' => 'الشكاوى المفتوحة', 'value' => $stats['open_complaints'], 'hint' => number_format($stats['open_complaints']) . ' من ' . number_format($stats['total_complaints']) . ' شكوى', 'color' => 'red', 'icon' => 'pulse', 'url' => route('staff.complaints.index'), 'detail' => 'عرض الشكاوى', 'progress' => $stats['total_complaints'] > 0 ? min(100, round($stats['open_complaints'] / $stats['total_complaints'] * 100)) : 0],
@@ -72,18 +104,6 @@
         @endforeach
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @can('manage_packages')
-        <a href="{{ route('admin.packages.index') }}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:border-purple-200 transition shadow-sm">
-            <h3 class="font-bold text-gray-900">الباقات</h3>
-            <p class="text-xs text-gray-400 mt-1">إدارة باقات الإنترنت</p>
-        </a>
-        @endcan
-        @can('manage_employees')
-        <a href="{{ route('admin.employees.index') }}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:border-purple-200 transition shadow-sm">
-            <h3 class="font-bold text-gray-900">الموظفين</h3>
-            <p class="text-xs text-gray-400 mt-1">إنشاء وإدارة حسابات الموظفين</p>
-        </a>
-        @endcan
         @can('view_audit_logs')
         <a href="{{ route('admin.audit-logs.index') }}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:border-purple-200 transition shadow-sm">
             <h3 class="font-bold text-gray-900">سجل العمليات</h3>

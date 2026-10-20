@@ -6,6 +6,7 @@ use App\Enums\RecordStatus;
 use App\Enums\UserStatus;
 use App\Models\Complaint;
 use App\Models\Package;
+use App\Models\Payment;
 use App\Models\RechargeRequest;
 use App\Models\Role;
 use App\Models\User;
@@ -13,15 +14,20 @@ use Carbon\CarbonImmutable;
 
 class DashboardStatsService
 {
-    public function getStats(): array
+    public function getStats(int $days = 7): array
     {
+        $periodStart = CarbonImmutable::today()->subDays($days - 1);
+        $previousPeriodStart = $periodStart->subDays($days);
+        $periodEnd = CarbonImmutable::tomorrow();
         $staffRoleIds = Role::whereIn('name', User::STAFF_ROLES)->pluck('id');
         $subscriberQuery = User::where('type', 'subscriber');
         $activeSubscribers = (clone $subscriberQuery)->where('status', UserStatus::Active)->count();
         $totalSubscribers = (clone $subscriberQuery)->count();
-        $pendingRechargeQuery = RechargeRequest::where('status', 'pending');
+        $pendingRechargeQuery = RechargeRequest::whereIn('status', ['pending', 'under_review']);
         $pendingRecharges = (clone $pendingRechargeQuery)->count();
-        $openComplaints = Complaint::whereIn('status', ['open', 'in_progress'])->count();
+        $openComplaints = Complaint::whereIn('status', ['open', 'new', 'under_review', 'in_progress'])->count();
+        $staleComplaints = Complaint::whereIn('status', ['open', 'new', 'under_review', 'in_progress'])
+            ->where('created_at', '<', now()->subHours(48))->count();
         $totalComplaints = Complaint::count();
         $staffQuery = User::whereHas('roles', fn ($q) => $q->whereIn('roles.id', $staffRoleIds));
         $totalEmployees = (clone $staffQuery)->count();
@@ -43,6 +49,13 @@ class DashboardStatsService
             'active_employees' => $activeEmployees,
             'active_packages' => $activePackages,
             'total_packages' => $totalPackages,
+            'period_days' => $days,
+            'new_subscribers_period' => (clone $subscriberQuery)->where('created_at', '>=', $periodStart)->where('created_at', '<', $periodEnd)->count(),
+            'new_subscribers_previous_period' => (clone $subscriberQuery)->where('created_at', '>=', $previousPeriodStart)->where('created_at', '<', $periodStart)->count(),
+            'revenue_period' => Payment::where('status', 'completed')->where('paid_at', '>=', $periodStart)->where('paid_at', '<', $periodEnd)->sum('amount'),
+            'revenue_previous_period' => Payment::where('status', 'completed')->where('paid_at', '>=', $previousPeriodStart)->where('paid_at', '<', $periodStart)->sum('amount'),
+            'stale_recharges' => RechargeRequest::whereIn('status', ['pending', 'under_review'])->where('created_at', '<', now()->subHours(24))->count(),
+            'stale_complaints' => $staleComplaints,
         ];
     }
 
