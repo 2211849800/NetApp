@@ -6,6 +6,7 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 /**
  * Seeds development/test staff users for web authentication.
@@ -13,13 +14,19 @@ use Illuminate\Support\Facades\Hash;
  * Admin login:
  *   username: admin
  *   email:    admin@netapp.com
- *   password: DEMO_PASSWORD env var (default: password)
+ *   password: DEMO_PASSWORD env var (required in production; local default is password)
  */
 class StaffUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Hash::make(env('DEMO_PASSWORD', 'password'));
+        $demoPassword = env('DEMO_PASSWORD');
+
+        if (app()->environment('production') && (! is_string($demoPassword) || trim($demoPassword) === '')) {
+            throw new RuntimeException('DEMO_PASSWORD must be configured before seeding staff users in production.');
+        }
+
+        $password = Hash::make($demoPassword ?: 'password');
 
         $admin = User::updateOrCreate(
             ['username' => 'admin'],

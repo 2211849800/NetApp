@@ -154,7 +154,7 @@ class SubscriberApiController extends Controller
             return (string) $user->username;
         }
 
-        return (string) ($request->input('contract_number') ?? $request->route('contractNumber') ?? 'TEST-100001');
+        abort(403, 'No subscriber contract is linked to this account.');
     }
 
     private function handleException(\Throwable $e): JsonResponse

@@ -10,14 +10,31 @@ if [ -z "$APP_KEY" ]; then
   echo "WARNING: APP_KEY not set, generated a temporary one."
 fi
 
-# Ephemeral SQLite: Render free disk is wiped on every restart, so we re-migrate + re-seed each boot.
-export DB_CONNECTION=sqlite
-export DB_DATABASE=/var/www/html/database/database.sqlite
-rm -f "$DB_DATABASE"
-touch "$DB_DATABASE"
+# Keep an explicitly configured database connection. SQLite is the demo default.
+export DB_CONNECTION="${DB_CONNECTION:-sqlite}"
+database_is_new=false
+
+if [ "$DB_CONNECTION" = "sqlite" ]; then
+  export DB_DATABASE="${DB_DATABASE:-/var/www/html/database/database.sqlite}"
+
+  if [ ! -f "$DB_DATABASE" ]; then
+    mkdir -p "$(dirname "$DB_DATABASE")"
+    touch "$DB_DATABASE"
+    database_is_new=true
+  fi
+fi
 
 php artisan config:clear
-php artisan migrate --force --seed
+php artisan migrate --force
+
+# Demo data is seeded once, only for a new database and only with an explicit password.
+if [ "$database_is_new" = true ] && [ "${DEMO_SEED_ENABLED:-false}" = "true" ]; then
+  if [ -n "${DEMO_PASSWORD:-}" ]; then
+    php artisan db:seed --force
+  else
+    echo "Skipping demo seed: DEMO_PASSWORD is not configured."
+  fi
+fi
 
 php artisan config:cache
 php artisan route:cache

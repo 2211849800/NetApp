@@ -28,6 +28,8 @@ class WebhookController extends Controller
 
     public function simulate(Request $request): RedirectResponse
     {
+        abort_if(app()->environment('production'), 404);
+
         $validated = $request->validate([
             'gateway' => ['required', 'string', 'in:lypay,onepay'],
             'contract_number' => ['required', 'string'],

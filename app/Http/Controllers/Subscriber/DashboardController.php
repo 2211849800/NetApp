@@ -22,7 +22,16 @@ class DashboardController extends Controller
     private function contractNumber(Request $request): string
     {
         $user = $request->user();
-        return (string) ($user->contract_number ?: ($user->username ?: 'TEST-100001'));
+
+        if (! empty($user->contract_number)) {
+            return (string) $user->contract_number;
+        }
+
+        if (is_string($user->username) && str_starts_with($user->username, 'TEST-')) {
+            return $user->username;
+        }
+
+        abort(403, 'No subscriber contract is linked to this account.');
     }
 
     public function index(Request $request): View

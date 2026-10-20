@@ -77,13 +77,18 @@ Route::prefix('v1')->group(function () {
         // Subscriber Management API (via Provider)
         // ──────────────────────────────────────────
 
-        Route::prefix('subscribers')->group(function () {
-            Route::get('/{contractNumber}', [SubscriberApiController::class, 'show'])->name('api.subscribers.show');
-            Route::get('/{contractNumber}/subscription', [SubscriberApiController::class, 'subscription'])->name('api.subscribers.subscription');
-            Route::get('/{contractNumber}/usage', [SubscriberApiController::class, 'usage'])->name('api.subscribers.usage');
-            Route::get('/{contractNumber}/borrowing', [SubscriberApiController::class, 'borrowing'])->name('api.subscribers.borrowing');
-            Route::post('/{contractNumber}/recharge', [SubscriberApiController::class, 'recharge'])->name('api.subscribers.recharge');
-            Route::post('/{contractNumber}/change-package', [SubscriberApiController::class, 'changePackage'])->name('api.subscribers.change-package');
+        Route::middleware(['user.type:employee,admin'])->prefix('subscribers')->group(function () {
+            Route::middleware('permission:view_subscribers')->group(function () {
+                Route::get('/{contractNumber}', [SubscriberApiController::class, 'show'])->name('api.subscribers.show');
+                Route::get('/{contractNumber}/subscription', [SubscriberApiController::class, 'subscription'])->name('api.subscribers.subscription');
+                Route::get('/{contractNumber}/usage', [SubscriberApiController::class, 'usage'])->name('api.subscribers.usage');
+                Route::get('/{contractNumber}/borrowing', [SubscriberApiController::class, 'borrowing'])->name('api.subscribers.borrowing');
+            });
+
+            Route::middleware('permission:manage_subscribers')->group(function () {
+                Route::post('/{contractNumber}/recharge', [SubscriberApiController::class, 'recharge'])->name('api.subscribers.recharge');
+                Route::post('/{contractNumber}/change-package', [SubscriberApiController::class, 'changePackage'])->name('api.subscribers.change-package');
+            });
         });
 
     });
@@ -95,7 +100,9 @@ Route::prefix('v1')->group(function () {
     Route::prefix('webhooks')->group(function () {
         Route::post('/lypay', [App\Http\Controllers\Api\V1\WebhookController::class, 'handleLypay'])->name('webhooks.lypay');
         Route::post('/onepay', [App\Http\Controllers\Api\V1\WebhookController::class, 'handleOnePay'])->name('webhooks.onepay');
-        Route::post('/simulate', [App\Http\Controllers\Api\V1\WebhookController::class, 'simulate'])->name('webhooks.simulate');
+        Route::post('/simulate', [App\Http\Controllers\Api\V1\WebhookController::class, 'simulate'])
+            ->middleware(['auth:sanctum', 'user.type:employee,admin'])
+            ->name('webhooks.simulate');
     });
 });
 

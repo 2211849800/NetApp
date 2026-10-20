@@ -54,7 +54,18 @@
             <div class="text-[11px] uppercase tracking-wider text-white/50 mb-2">الباقة الحالية</div>
             <div class="flex items-center gap-2 mb-1">
                 <h3 class="text-xl font-black text-white" x-text="data.subscription.package_name || '—'"></h3>
-                <x-status-badge :status="data.subscription.status ? strtolower(data.subscription.status) : 'active'" :label="data.subscription.status || 'نشط'" />
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                    :class="{
+                        'bg-emerald-50 text-emerald-700 border-emerald-200/60': ['active', 'completed'].includes((data.subscription.status || 'active').toLowerCase()),
+                        'bg-gray-100 text-gray-600 border-gray-200': (data.subscription.status || '').toLowerCase() === 'expired',
+                        'bg-rose-50 text-rose-700 border-rose-200/60': ['failed', 'suspended'].includes((data.subscription.status || '').toLowerCase()),
+                        'bg-purple-50 text-purple-700 border-purple-200': !['active', 'completed', 'expired', 'failed', 'suspended'].includes((data.subscription.status || 'active').toLowerCase())
+                    }">
+                    <svg x-show="['active', 'completed'].includes((data.subscription.status || 'active').toLowerCase())" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span x-text="data.subscription.status || 'نشط'"></span>
+                </span>
             </div>
             <div class="text-xs text-white/60 font-mono" dir="ltr">
                 <span x-text="data.subscription.price ? numberFormat(data.subscription.price) : '—'"></span> د.ل
