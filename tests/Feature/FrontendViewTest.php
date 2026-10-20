@@ -28,6 +28,12 @@ class FrontendViewTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('لوحة تحكم المدير');
         $response->assertSee('admin');
+        $response->assertSee(route('staff.subscribers.index'));
+        $response->assertSee(route('staff.recharges.index', ['status' => 'pending']));
+        $response->assertSee(route('staff.complaints.index'));
+        $response->assertSee(route('admin.employees.index'));
+        $response->assertSee(route('admin.packages.index'));
+        $response->assertSee('aria-label="إجمالي المشتركين: 0. عرض المشتركين"', false);
     }
 
     public function test_subscribers_page_renders_for_authorized_staff(): void
