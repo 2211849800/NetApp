@@ -17,20 +17,24 @@ class DashboardController extends Controller
 
     public function index(): View
     {
-        $stats = $this->dashboardService->getStats();
+        $employee = request()->user();
+        $stats = $this->dashboardService->getStats($employee->id);
 
         $latestRecharges = RechargeRequest::query()
+            ->whereIn('status', ['pending', 'under_review'])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
 
         $latestComplaints = Complaint::query()
+            ->whereIn('status', ['open', 'new', 'under_review', 'in_progress'])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
 
         $todayOperations = AuditLog::query()
             ->with('user')
+            ->where('user_id', $employee->id)
             ->whereDate('created_at', now()->toDateString())
             ->orderByDesc('created_at')
             ->limit(8)
