@@ -1,9 +1,9 @@
-# Demo image for Render free tier (PHP 8.3 is required: composer.lock platform = ^8.3)
+# PHP 8.3 image for Render with PostgreSQL support.
 FROM php:8.3-cli
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip libpng-dev libonig-dev libxml2-dev libzip-dev \
-    && docker-php-ext-install mbstring gd zip bcmath \
+        git unzip libpng-dev libonig-dev libxml2-dev libzip-dev libpq-dev \
+    && docker-php-ext-install mbstring gd zip bcmath pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

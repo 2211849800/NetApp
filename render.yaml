@@ -18,7 +18,11 @@ services:
       - key: PORT
         value: "10000"
       - key: DB_CONNECTION
-        value: sqlite
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: netapp-db
+          property: connectionString
       - key: SESSION_DRIVER
         value: file
       - key: SESSION_SECURE_COOKIE
@@ -33,3 +37,9 @@ services:
         sync: false
       - key: DEMO_SEED_ENABLED
         value: "true"
+
+databases:
+  - name: netapp-db
+    plan: basic-256mb
+    databaseName: netapp
+    user: netapp

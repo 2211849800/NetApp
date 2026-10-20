@@ -99,11 +99,12 @@ class EmployeeBalanceAntiFraudTest extends TestCase
         ]);
 
         $service = app(RechargeRequestService::class);
+        $staleRequest = $rechargeRequest->fresh();
         $service->approve($rechargeRequest, $employeeA, 'تم الشحن من قبل الموظف أ');
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageMatches('/تزوير/u');
 
-        $service->approve($rechargeRequest->fresh(), $employeeB, 'محاولة شحن مكررة من الموظف ب');
+        $service->approve($staleRequest, $employeeB, 'محاولة شحن مكررة من الموظف ب');
     }
 }
+

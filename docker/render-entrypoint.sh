@@ -22,6 +22,11 @@ if [ "$DB_CONNECTION" = "sqlite" ]; then
     touch "$DB_DATABASE"
     database_is_new=true
   fi
+elif [ "$DB_CONNECTION" = "pgsql" ]; then
+  # Seed demo records only on the first boot of a newly provisioned database.
+  if ! php artisan migrate:status --no-ansi 2>/dev/null | grep -q 'Ran'; then
+    database_is_new=true
+  fi
 fi
 
 php artisan config:clear

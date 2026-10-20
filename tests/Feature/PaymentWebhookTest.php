@@ -93,6 +93,85 @@ class PaymentWebhookTest extends TestCase
         ]);
     }
 
+    public function test_production_webhook_is_rejected_when_gateway_secret_is_missing(): void
+    {
+        config([
+            'app.env' => 'production',
+            'services.lypay.webhook_secret' => null,
+        ]);
+
+        $response = $this->postJson('/api/v1/webhooks/lypay', [
+            'reference' => 'NO-SECRET-001',
+            'contract_number' => 'TEST-100001',
+            'package_id' => 'PKG-70',
+            'amount' => 70,
+            'status' => 'SUCCESS',
+        ], [
+            'X-Lypay-Signature' => 'mock-signature',
+        ]);
+
+        $response->assertUnauthorized();
+        $this->assertDatabaseMissing('payments', ['reference' => 'NO-SECRET-001']);
+    }
+
+    public function test_unsuccessful_payment_notification_is_not_recorded_or_recharged(): void
+    {
+        $response = $this->postJson('/api/v1/webhooks/lypay', [
+            'reference' => 'FAILED-PAYMENT-001',
+            'contract_number' => 'TEST-100001',
+            'package_id' => 'PKG-70',
+            'amount' => 70,
+            'status' => 'FAILED',
+        ], [
+            'X-Lypay-Signature' => 'mock-signature',
+        ]);
+
+        $response->assertUnprocessable();
+        $this->assertDatabaseMissing('payments', ['reference' => 'FAILED-PAYMENT-001']);
+    }
+
+    public function test_invalid_amount_and_package_details_are_rejected(): void
+    {
+        $invalidAmount = $this->postJson('/api/v1/webhooks/lypay', [
+            'reference' => 'INVALID-AMOUNT-001',
+            'contract_number' => 'TEST-100001',
+            'package_id' => 'PKG-70',
+            'amount' => 0,
+            'status' => 'SUCCESS',
+        ], ['X-Lypay-Signature' => 'mock-signature']);
+
+        $invalidAmount->assertUnprocessable();
+
+        $invalidPackage = $this->postJson('/api/v1/webhooks/lypay', [
+            'reference' => 'INVALID-PACKAGE-001',
+            'contract_number' => 'TEST-100001',
+            'package_id' => 'UNKNOWN',
+            'amount' => 70,
+            'status' => 'SUCCESS',
+        ], ['X-Lypay-Signature' => 'mock-signature']);
+
+        $invalidPackage->assertUnprocessable();
+        $this->assertDatabaseMissing('payments', ['reference' => 'INVALID-AMOUNT-001']);
+        $this->assertDatabaseMissing('payments', ['reference' => 'INVALID-PACKAGE-001']);
+    }
+
+    public function test_recharge_failure_leaves_confirmed_payment_pending(): void
+    {
+        $response = $this->postJson('/api/v1/webhooks/lypay', [
+            'reference' => 'RECHARGE-RETRY-001',
+            'contract_number' => 'SIM-TIMEOUT',
+            'package_id' => 'PKG-70',
+            'amount' => 70,
+            'status' => 'SUCCESS',
+        ], ['X-Lypay-Signature' => 'mock-signature']);
+
+        $response->assertServerError();
+        $this->assertDatabaseHas('payments', [
+            'reference' => 'RECHARGE-RETRY-001',
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_webhook_idempotency_prevents_duplicate_recharges(): void
     {
         Payment::create([
@@ -110,6 +189,7 @@ class PaymentWebhookTest extends TestCase
             'contract_number' => 'TEST-100001',
             'amount' => 70.00,
             'package_id' => '1',
+            'status' => 'SUCCESS',
         ];
 
         $response = $this->postJson('/api/v1/webhooks/lypay', $payload, [
@@ -122,6 +202,8 @@ class PaymentWebhookTest extends TestCase
 
     public function test_webhook_artisan_simulation_command(): void
     {
+        config(['services.lypay.webhook_secret' => 'test-only-secret']);
+
         $this->artisan('webhook:simulate', [
             '--gateway' => 'lypay',
             '--contract' => 'TEST-100001',

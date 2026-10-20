@@ -15,19 +15,35 @@ class WebhookSignatureService
             return true;
         }
 
-        $expectedSignature = $this->generateSignature($gateway, $payloadContent);
+        $secret = $this->secretFor($gateway);
+        if ($secret === null) {
+            return false;
+        }
+
+        $expectedSignature = hash_hmac('sha256', $payloadContent, $secret);
 
         return hash_equals($expectedSignature, $signature);
     }
 
     public function generateSignature(string $gateway, string $payloadContent): string
     {
-        $secret = match (strtolower($gateway)) {
-            'lypay' => config('services.lypay.webhook_secret', env('LYPAY_WEBHOOK_SECRET', 'mock-lypay-secret-123')),
-            'onepay' => config('services.onepay.webhook_secret', env('ONEPAY_WEBHOOK_SECRET', 'mock-onepay-secret-123')),
-            default => 'mock-default-secret-123',
-        };
+        $secret = $this->secretFor($gateway);
+
+        if ($secret === null) {
+            throw new \InvalidArgumentException('Webhook secret is not configured for this gateway.');
+        }
 
         return hash_hmac('sha256', $payloadContent, $secret);
+    }
+
+    private function secretFor(string $gateway): ?string
+    {
+        $secret = match (strtolower($gateway)) {
+            'lypay' => config('services.lypay.webhook_secret'),
+            'onepay' => config('services.onepay.webhook_secret'),
+            default => null,
+        };
+
+        return is_string($secret) && trim($secret) !== '' ? $secret : null;
     }
 }

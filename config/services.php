@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'lypay' => [
+        'webhook_secret' => env('LYPAY_WEBHOOK_SECRET'),
+    ],
+
+    'onepay' => [
+        'webhook_secret' => env('ONEPAY_WEBHOOK_SECRET'),
+    ],
+
 ];

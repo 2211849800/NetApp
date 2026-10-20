@@ -14,6 +14,7 @@ class Payment extends Model
         'contract_number',
         'subscriber_name',
         'gateway',
+        'package_id',
         'amount',
         'status',
         'notes',
