@@ -9,7 +9,11 @@
             <h2 class="text-xl font-black text-gray-900">إدارة المشتركين</h2>
             <p class="text-xs text-gray-400 mt-1">استعلام سريع برقم العقد أو الاسم أو الهاتف — البيانات من مزود المشتركين مباشرة</p>
         </div>
-        <button id="openSubscriberModal" type="button" class="px-4 py-2.5 bg-[#6F42C1] hover:bg-[#5B2BB8] text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer">
+        <a href="{{ route('staff.subscribers.create') }}" class="px-4 py-2.5 bg-[#6F42C1] hover:bg-[#5B2BB8] text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>إضافة عقد جديد</span>
+        </a>
+        <button id="openSubscriberModal" type="button" class="px-4 py-2.5 bg-white hover:bg-purple-50 text-[#6F42C1] border border-purple-200 font-bold rounded-xl text-xs transition flex items-center gap-2 self-start sm:self-auto cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             <span>إضافة حساب بوابة</span>
         </button>

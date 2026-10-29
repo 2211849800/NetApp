@@ -7,12 +7,14 @@ use App\Models\AuditLog;
 use App\Models\Complaint;
 use App\Models\RechargeRequest;
 use App\Services\Employee\EmployeeDashboardService;
+use App\Services\Employee\EmployeeWalletService;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function __construct(
         private readonly EmployeeDashboardService $dashboardService,
+        private readonly EmployeeWalletService $walletService,
     ) {}
 
     public function index(): View
@@ -43,6 +45,7 @@ class DashboardController extends Controller
         return view('employee.dashboard', [
             'roleLabel' => 'موظف',
             'stats' => $stats,
+            'walletBalance' => $this->walletService->balance($employee),
             'latestRecharges' => $latestRecharges,
             'latestComplaints' => $latestComplaints,
             'todayOperations' => $todayOperations,

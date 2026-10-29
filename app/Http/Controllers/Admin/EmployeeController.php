@@ -11,13 +11,19 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Employee\EmployeeService;
+use App\Services\Employee\EmployeeWalletService;
+use App\Services\Audit\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class EmployeeController extends Controller
 {
-    public function __construct(private readonly EmployeeService $employeeService) {}
+    public function __construct(
+        private readonly EmployeeService $employeeService,
+        private readonly EmployeeWalletService $wallet,
+        private readonly AuditLogService $auditLog,
+    ) {}
 
     public function index(): View
     {
@@ -29,7 +35,34 @@ class EmployeeController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('admin.employees.index', compact('employees'));
+        $walletBalances = $employees->mapWithKeys(fn (User $employee) => [
+            $employee->id => $this->wallet->balance($employee),
+        ]);
+
+        return view('admin.employees.index', compact('employees', 'walletBalances'));
+    }
+
+    public function creditWallet(Request $request, User $employee): RedirectResponse
+    {
+        abort_unless($employee->hasRole('employee'), 404);
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:10000000'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $transaction = $this->wallet->credit(
+            $employee,
+            $request->user(),
+            (float) $validated['amount'],
+            $validated['note'] ?? null,
+        );
+        $this->auditLog->log('EMPLOYEE_WALLET_FUNDED', 'EmployeeWalletTransaction', $transaction->id, null, [
+            'employee_id' => $employee->id,
+            'amount' => $transaction->amount,
+            'reference' => $transaction->reference,
+        ]);
+
+        return back()->with('status', 'تم تحويل المبلغ إلى رصيد الموظف '.$employee->name.'.');
     }
 
     public function create(): View

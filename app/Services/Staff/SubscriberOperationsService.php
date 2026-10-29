@@ -12,9 +12,11 @@ use App\Exceptions\Subscriber\RechargeFailedException;
 use App\Exceptions\Subscriber\SubscriberNotFoundException;
 use App\Exceptions\Subscriber\SubscriberProviderUnavailableException;
 use App\Exceptions\Subscriber\SubscriberSuspendedException;
+use App\Exceptions\Employee\InsufficientEmployeeBalanceException;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
+use App\Services\Employee\EmployeeWalletService;
 use Illuminate\Support\Str;
 
 class SubscriberOperationsService
@@ -22,6 +24,7 @@ class SubscriberOperationsService
     public function __construct(
         private readonly SubscriberProviderInterface $subscriberProvider,
         private readonly AuditLogService $auditLog,
+        private readonly EmployeeWalletService $wallet,
     ) {}
 
     /**
@@ -44,20 +47,44 @@ class SubscriberOperationsService
 
     public function recharge(string $contractNumber, string $packageId, ?User $actor = null): RechargeResult
     {
-        $result = $this->subscriberProvider->recharge(
-            $contractNumber,
-            $packageId,
-            'staff-recharge-' . Str::uuid(),
-        );
-
         $packages = $this->subscriberProvider->listAvailablePackages();
         $package = $packages[$packageId] ?? null;
+        $actor ??= auth()->user();
+        $employeeDebit = null;
+
+        if ($actor?->hasRole('employee')) {
+            if (! $package) {
+                throw new RechargeFailedException('الباقة المحددة غير متاحة.');
+            }
+
+            $employeeDebit = $this->wallet->debit(
+                $actor,
+                (float) $package['price'],
+                "شحن عقد {$contractNumber}"
+            );
+        }
+
+        try {
+            $result = $this->subscriberProvider->recharge(
+                $contractNumber,
+                $packageId,
+                'staff-recharge-' . Str::uuid(),
+            );
+        } catch (\Throwable $exception) {
+            if ($employeeDebit && $actor) {
+                $this->wallet->refund($actor, (float) $employeeDebit->amount, "إرجاع قيمة شحن العقد {$contractNumber} بعد فشل العملية");
+            }
+
+            throw $exception;
+        }
+
         $profile = $this->subscriberProvider->findSubscriberByContract($contractNumber);
 
         $payment = Payment::create([
             'contract_number' => $contractNumber,
             'subscriber_name' => $profile->name,
             'gateway' => 'cash',
+            'package_id' => $packageId,
             'amount' => $package['price'] ?? 0,
             'status' => 'completed',
             'reference' => $result->transactionId ?: ('PAY-' . Str::upper(Str::random(10))),
@@ -121,6 +148,7 @@ class SubscriberOperationsService
             $e instanceof RechargeFailedException,
             $e instanceof PackageChangeFailedException,
             $e instanceof BorrowingFailedException,
+            $e instanceof InsufficientEmployeeBalanceException,
             $e instanceof SubscriberProviderUnavailableException => $e->getMessage(),
             default => 'تعذر إتمام العملية. حاول مرة أخرى.',
         };

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Staff;
 use App\Contracts\SubscriberProviderInterface;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\SubscriberContract;
 use App\Services\Audit\AuditLogService;
 use App\Services\Staff\SubscriberOperationsService;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +19,82 @@ class SubscriberController extends Controller
         private readonly SubscriberOperationsService $operations,
         private readonly AuditLogService $auditLog,
     ) {}
+
+    public function create(): View
+    {
+        return view('staff.subscribers.create-contract', [
+            'packages' => $this->subscriberProvider->listAvailablePackages(),
+            'isAdmin' => auth()->user()->hasRole('admin'),
+        ]);
+    }
+
+    public function storeContract(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:30'],
+            'package_id' => ['required', 'string'],
+            'contract_number' => ['required', 'string', 'min:3', 'max:50', 'alpha_dash:ascii', 'unique:mock_subscribers,contract_number', 'unique:users,username'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'national_id' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'details' => ['nullable', 'array'],
+            'details.*' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $packageId = $validated['package_id'];
+        abort_unless(isset($this->subscriberProvider->listAvailablePackages()[$packageId]), 422, 'الباقة المحددة غير متاحة.');
+
+        $subscriber = $this->subscriberProvider->provisionSubscriber(
+            $validated['name'], $validated['phone'], $packageId, $validated['contract_number'],
+        );
+
+        $portalUser = User::create([
+            'name' => $validated['name'],
+            'username' => $subscriber->contractNumber,
+            'contract_number' => $subscriber->contractNumber,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'],
+            'password' => $validated['password'],
+            'type' => 'subscriber',
+            'status' => \App\Enums\UserStatus::Active,
+            'is_active' => true,
+        ]);
+        $portalUser->assignRole('subscriber');
+
+        $contractDetails = array_intersect_key($validated['details'] ?? [], array_flip([
+            'automatic_renewal', 'borrowing_enabled',
+            'first_name', 'father_name', 'last_name', 'nationality', 'city', 'address',
+            'passport_number', 'payment_method', 'notes',
+        ]));
+        if ($request->user()->hasRole('admin')) {
+            $contractDetails = array_merge($contractDetails, array_intersect_key($validated['details'] ?? [], array_flip([
+                'ip_address', 'sender_device_ip', 'download_speed', 'upload_speed',
+                'mac_address', 'primary_dns', 'secondary_dns', 'device_port',
+                'start_date', 'end_date', 'download_start', 'download_end',
+                'download_quota', 'upload_quota', 'throttle_speed',
+            ])));
+        }
+
+        SubscriberContract::create([
+            'contract_number' => $subscriber->contractNumber,
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+            'national_id' => $validated['national_id'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'package_id' => $packageId,
+            'details' => $contractDetails,
+            'created_by' => $request->user()->id,
+        ]);
+
+        $this->auditLog->log('SUBSCRIBER_CONTRACT_CREATED', 'SubscriberContract', null, null, [
+            'contract_number' => $subscriber->contractNumber,
+            'name' => $validated['name'],
+        ]);
+
+        return redirect()->route('staff.subscribers.index', ['contract' => $subscriber->contractNumber])
+            ->with('status', 'تم إنشاء العقد بنجاح. رقم العقد: '.$subscriber->contractNumber);
+    }
 
     public function index(Request $request): View
     {
@@ -105,7 +182,7 @@ class SubscriberController extends Controller
         ]);
 
         try {
-            $result = $this->operations->recharge($validated['contract_number'], $validated['package_id']);
+            $result = $this->operations->recharge($validated['contract_number'], $validated['package_id'], $request->user());
 
             return back()->with('status', $result->message ?? 'تم شحن الباقة بنجاح.');
         } catch (\Throwable $e) {

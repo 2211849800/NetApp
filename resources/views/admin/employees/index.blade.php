@@ -21,6 +21,7 @@
             {{ session('status') }}
         </div>
     @endif
+    <x-admin.errors />
 
     <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
@@ -32,6 +33,7 @@
                         <th class="py-4 px-6">رقم الهاتف</th>
                         <th class="py-4 px-6">الدور</th>
                         <th class="py-4 px-6">الحالة</th>
+                        <th class="py-4 px-6">رصيد الشحن</th>
                         <th class="py-4 px-6">تاريخ الإنشاء</th>
                         <th class="py-4 px-6">إجراءات</th>
                     </tr>
@@ -58,6 +60,19 @@
                                     <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-semibold">{{ $employee->status?->label() }}</span>
                                 @endif
                             </td>
+                            <td class="py-4 px-6 min-w-64">
+                                @if ($employee->hasRole('employee'))
+                                    <div class="font-bold text-emerald-700 mb-2">{{ number_format($walletBalances[$employee->id] ?? 0, 2) }} د.ل</div>
+                                    <form method="POST" action="{{ route('admin.employees.wallet.credit', $employee) }}" class="flex items-center gap-2">
+                                        @csrf
+                                        <input name="amount" type="number" min="0.01" step="0.01" required placeholder="المبلغ" class="w-24 px-2 py-1.5 rounded-lg border border-gray-200 text-xs">
+                                        <input name="note" maxlength="255" placeholder="ملاحظة (اختياري)" class="w-32 px-2 py-1.5 rounded-lg border border-gray-200 text-xs">
+                                        <button class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">إضافة رصيد</button>
+                                    </form>
+                                @else
+                                    <span class="text-gray-400">—</span>
+                                @endif
+                            </td>
                             <td class="py-4 px-6 text-gray-500">{{ $employee->created_at?->format('Y-m-d') }}</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center gap-2">
@@ -75,7 +90,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-10 px-6 text-center text-gray-400">لا يوجد موظفون بعد. ابدأ بإضافة موظف جديد.</td>
+                            <td colspan="8" class="py-10 px-6 text-center text-gray-400">لا يوجد موظفون بعد. ابدأ بإضافة موظف جديد.</td>
                         </tr>
                     @endforelse
                 </tbody>

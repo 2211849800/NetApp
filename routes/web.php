@@ -122,6 +122,7 @@ Route::middleware(['auth', 'staff', 'role:admin'])
         // Employees Management
         Route::middleware('permission:manage_employees')->group(function () {
             Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+            Route::post('/employees/{employee}/wallet', [EmployeeController::class, 'creditWallet'])->name('employees.wallet.credit');
             Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
             Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
             Route::get('/employees/{employee}', [EmployeeController::class, 'show'])->name('employees.show');
@@ -205,6 +206,7 @@ Route::middleware(['auth', 'staff'])
     ->prefix('staff')
     ->name('staff.')
     ->group(function () {
+        Route::get('/my-recharges', [App\Http\Controllers\Staff\MyRechargesController::class, 'index'])->name('my-recharges.index');
         Route::get('/my-balance', [App\Http\Controllers\Staff\MyBalanceController::class, 'index'])->name('my-balance.index');
         Route::post('/my-balance/entries', [App\Http\Controllers\Staff\MyBalanceController::class, 'addEntry'])->name('my-balance.entries.store');
         Route::post('/my-balance/close', [App\Http\Controllers\Staff\MyBalanceController::class, 'closeAccount'])->name('my-balance.close');
@@ -212,11 +214,16 @@ Route::middleware(['auth', 'staff'])
         Route::middleware('permission:view_subscribers')->group(function () {
 
             Route::get('/subscribers', [SubscriberController::class, 'index'])->name('subscribers.index');
+            Route::get('/subscribers/create', [SubscriberController::class, 'create'])->name('subscribers.create');
             Route::post('/subscribers', [SubscriberController::class, 'store'])->name('subscribers.store');
             Route::post('/subscribers/recharge', [SubscriberController::class, 'recharge'])->name('subscribers.recharge');
             Route::post('/subscribers/change-package', [SubscriberController::class, 'changePackage'])->name('subscribers.change-package');
             Route::post('/subscribers/activate-borrowing', [SubscriberController::class, 'activateBorrowing'])->name('subscribers.activate-borrowing');
         });
+
+        Route::post('/subscribers/contracts', [SubscriberController::class, 'storeContract'])
+            ->middleware('permission:manage_subscribers')
+            ->name('subscribers.contracts.store');
 
         Route::middleware('permission:view_complaints')->group(function () {
             Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');

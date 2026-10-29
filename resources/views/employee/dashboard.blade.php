@@ -13,7 +13,12 @@
 
     <x-admin.flash />
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <a href="{{ route('staff.subscribers.index') }}" class="bg-white rounded-2xl border border-emerald-100 p-6 shadow-sm hover:border-emerald-300 transition">
+            <p class="text-xs text-gray-400 font-medium">رصيد الشحن المتاح</p>
+            <p class="text-3xl font-black text-emerald-700 mt-2">{{ number_format($walletBalance, 2) }} <span class="text-sm">د.ل</span></p>
+            <p class="text-xs text-gray-400 mt-1">متاح لاستخدامه في شحن المشتركين</p>
+        </a>
         <a href="{{ route('staff.recharges.index') }}" class="bg-white rounded-2xl border border-amber-100 p-6 shadow-sm hover:border-amber-300 transition">
             <p class="text-xs text-gray-400 font-medium">طلبات الشحن المعلقة للفريق</p>
             <p class="text-3xl font-black text-amber-600 mt-2">{{ number_format($stats['pending_recharges']) }}</p>
@@ -36,6 +41,10 @@
         <a href="{{ route('staff.subscribers.index') }}" class="bg-white rounded-2xl border p-5 hover:border-purple-200 shadow-sm">
             <h3 class="font-bold">استعلام المشتركين</h3>
             <p class="text-xs text-gray-400 mt-1">بحث برقم العقد والشحن وتغيير الباقة</p>
+        </a>
+        <a href="{{ route('staff.my-recharges.index') }}" class="bg-white rounded-2xl border border-emerald-100 p-5 hover:border-emerald-300 shadow-sm">
+            <h3 class="font-bold">سجل شحناتي</h3>
+            <p class="text-xs text-gray-400 mt-1">مراجعة المشتركين وعمليات الشحن التي نفذتها</p>
         </a>
         <a href="{{ route('staff.subscription-requests.index') }}" class="bg-white rounded-2xl border p-5 hover:border-purple-200 shadow-sm">
             <h3 class="font-bold">طلبات الاشتراك</h3>

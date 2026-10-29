@@ -67,6 +67,7 @@ class RechargeRequestService
                 'contract_number' => $request->contract_number,
                 'subscriber_name' => $request->subscriber_name,
                 'gateway' => $request->payment_method ?: 'cash',
+                'package_id' => $request->package_id,
                 'amount' => $request->amount ?? 0,
                 'status' => 'completed',
                 'reference' => $result->transactionId ?: ('PAY-' . Str::upper(Str::random(10))),
