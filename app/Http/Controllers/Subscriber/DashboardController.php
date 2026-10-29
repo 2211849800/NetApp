@@ -6,7 +6,9 @@ use App\Contracts\SubscriberProviderInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
 use App\Models\Payment;
+use App\Models\OperationalNotification;
 use App\Services\Subscriber\SubscriberDashboardService;
+use App\Services\Subscriber\SubscriberNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,7 @@ class DashboardController extends Controller
     public function __construct(
         private readonly SubscriberProviderInterface $subscriberProvider,
         private readonly SubscriberDashboardService $dashboardService,
+        private readonly SubscriberNotificationService $notificationsService,
     ) {}
 
     private function contractNumber(Request $request): string
@@ -52,13 +55,17 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $notifications = OperationalNotification::where('user_id', $user->id)
+            ->latest()->limit(30)->get();
+
         return view('subscriber.dashboard', compact(
             'user',
             'contractNumber',
             'dashboard',
             'packages',
             'complaints',
-            'payments'
+            'payments',
+            'notifications'
         ));
     }
 
@@ -80,6 +87,13 @@ class DashboardController extends Controller
 
         try {
             $result = $this->subscriberProvider->recharge($contractNumber, $validated['package_id']);
+            $package = $this->subscriberProvider->listAvailablePackages()[$validated['package_id']];
+            $this->notificationsService->notifyRecharge(
+                $contractNumber,
+                $package['name'],
+                'subscriber-recharge-'.($result->transactionId ?: (string) \Illuminate\Support\Str::uuid()),
+                $request->user(),
+            );
 
             return back()->with('status', $result->message ?? 'تم شحن الحساب بنجاح.');
         } catch (\Throwable $e) {
@@ -98,6 +112,15 @@ class DashboardController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function markNotificationRead(Request $request, OperationalNotification $notification): RedirectResponse
+    {
+        abort_unless($notification->user_id === $request->user()->id, 404);
+
+        $notification->update(['read_at' => now()]);
+
+        return back();
     }
 
     public function storeComplaint(Request $request): RedirectResponse

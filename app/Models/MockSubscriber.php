@@ -12,6 +12,7 @@ class MockSubscriber extends Model
         'contract_number',
         'name',
         'phone',
+        'equipment_ip',
         'status',
         'current_package_id',
         'current_package_name',

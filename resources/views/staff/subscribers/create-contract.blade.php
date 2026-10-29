@@ -23,7 +23,7 @@
         </section>
 
         <section class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100"><h2 class="font-bold text-gray-900">بيانات الشبكة</h2><p class="text-xs text-gray-400 mt-1">تُحدد هذه القيم من النظام أو جهاز الشبكة ولا يمكن تعديلها من نموذج العقد.</p></div>
+            <div class="px-6 py-4 border-b border-gray-100"><h2 class="font-bold text-gray-900">بيانات الشبكة</h2><p class="text-xs text-gray-400 mt-1">تُجلب هذه القيم من النظام ومزوّد الشبكة.</p></div>
             <div class="p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ([['عنوان IP', 'ip_address', '—'], ['IP جهاز المرسل', 'sender_device_ip', '—'], ['سرعة التحميل (Kbit/s)', 'download_speed', 'حسب الباقة'], ['سرعة الرفع (Kbit/s)', 'upload_speed', 'حسب الباقة'], ['عنوان MAC', 'mac_address', 'يُحدد تلقائياً'], ['DNS الأساسي', 'primary_dns', 'تلقائي'], ['DNS الثانوي', 'secondary_dns', 'تلقائي'], ['منفذ الاتصال بالجهاز', 'device_port', 'يُحدد تلقائياً']] as [$label, $key, $value])
                     <label class="text-xs font-semibold {{ $isAdmin ? 'text-gray-700' : 'text-gray-500' }}">{{ $label }}<input @if($isAdmin) name="details[{{ $key }}]" value="{{ old('details.'.$key) }}" @else value="{{ $value }}" disabled aria-readonly="true" @endif class="mt-2 w-full px-4 py-3 rounded-xl border border-gray-200 {{ $isAdmin ? 'bg-white' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}"></label>

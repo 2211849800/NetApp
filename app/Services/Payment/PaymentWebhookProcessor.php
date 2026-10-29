@@ -6,6 +6,7 @@ use App\Contracts\SubscriberProviderInterface;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
+use App\Services\Subscriber\SubscriberNotificationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +15,7 @@ class PaymentWebhookProcessor
     public function __construct(
         private readonly SubscriberProviderInterface $subscriberProvider,
         private readonly AuditLogService $auditLog,
+        private readonly SubscriberNotificationService $notifications,
     ) {}
 
     public function process(string $gateway, array $payload): array
@@ -127,6 +129,12 @@ class PaymentWebhookProcessor
             'amount' => $amount,
             'recharge_message' => $rechargeResult->message,
         ]);
+
+        $this->notifications->notifyRecharge(
+            $contractNumber,
+            $availablePackages[$packageId]['name'],
+            'payment-'.$payment->id,
+        );
 
         return [
             'success' => true,

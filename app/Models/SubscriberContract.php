@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SubscriberContract extends Model
 {
@@ -14,5 +15,10 @@ class SubscriberContract extends Model
     protected function casts(): array
     {
         return ['details' => 'array'];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

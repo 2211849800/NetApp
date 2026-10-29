@@ -47,6 +47,32 @@
 
     <x-admin.flash />
 
+    <section class="overflow-hidden rounded-2xl border border-white/10 bg-[#1E1538]">
+        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 class="font-bold text-white">رسائل وتنبيهات حسابك</h2>
+            <span class="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-200">{{ $notifications->whereNull('read_at')->count() }} غير مقروء</span>
+        </div>
+        <div class="divide-y divide-white/10">
+            @forelse ($notifications as $notification)
+                <div class="flex flex-wrap items-start justify-between gap-3 px-5 py-4 {{ $notification->read_at ? 'opacity-65' : '' }}">
+                    <div>
+                        <h3 class="text-sm font-bold text-white">{{ $notification->title }}</h3>
+                        <p class="mt-1 whitespace-pre-line text-sm text-white/70">{{ $notification->message }}</p>
+                        <p class="mt-2 text-[11px] text-white/40">{{ $notification->created_at?->format('Y-m-d H:i') }}</p>
+                    </div>
+                    @if (!$notification->read_at)
+                        <form method="POST" action="{{ route('subscriber.notifications.read', $notification) }}">
+                            @csrf
+                            <button class="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10">تمت القراءة</button>
+                        </form>
+                    @endif
+                </div>
+            @empty
+                <p class="px-5 py-6 text-sm text-white/50">لا توجد رسائل أو تنبيهات حاليًا.</p>
+            @endforelse
+        </div>
+    </section>
+
     <!-- KPI Row -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Package -->

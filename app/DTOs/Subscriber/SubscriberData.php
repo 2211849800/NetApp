@@ -10,6 +10,7 @@ readonly class SubscriberData
         public string $name,
         public ?string $phone,
         public string $status,
+        public ?string $equipmentIp = null,
     ) {}
 
     public function toArray(): array
@@ -20,6 +21,7 @@ readonly class SubscriberData
             'name' => $this->name,
             'phone' => $this->phone,
             'status' => $this->status,
+            'equipment_ip' => $this->equipmentIp,
         ];
     }
 }

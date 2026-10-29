@@ -13,10 +13,6 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             <span>إضافة عقد جديد</span>
         </a>
-        <button id="openSubscriberModal" type="button" class="px-4 py-2.5 bg-white hover:bg-purple-50 text-[#6F42C1] border border-purple-200 font-bold rounded-xl text-xs transition flex items-center gap-2 self-start sm:self-auto cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            <span>إضافة حساب بوابة</span>
-        </button>
     </div>
 
     <x-admin.flash />
@@ -68,11 +64,16 @@
                 <x-status-badge :status="$statusKey" :label="$statusLabel" />
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 p-6">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 p-6">
                 <div class="rounded-2xl bg-gray-50 p-4">
                     <p class="text-[11px] text-gray-400">الباقة الحالية</p>
                     <p class="font-bold text-gray-900 mt-1">{{ $subscription->packageName }}</p>
                     <p class="text-xs text-gray-500 mt-0.5">{{ number_format($subscription->packagePrice, 2) }} د.ل</p>
+                </div>
+                <div class="rounded-2xl bg-gray-50 p-4">
+                    <p class="text-[11px] text-gray-400">الاستهلاك الحالي</p>
+                    <p class="font-bold text-gray-900 mt-1">{{ number_format($usage->usedDataGb, 2) }} GB</p>
+                    <p class="text-xs text-gray-500 mt-0.5">من {{ number_format($usage->totalAllowanceGb, 2) }} GB</p>
                 </div>
                 <div class="rounded-2xl bg-gray-50 p-4">
                     <p class="text-[11px] text-gray-400">الكوتا المتبقية</p>
@@ -89,6 +90,140 @@
                     <p class="text-xs text-gray-500 mt-0.5">مستخدم {{ number_format($borrowing->usedGb, 2) }} / {{ number_format($borrowing->borrowingLimitGb, 0) }} GB</p>
                 </div>
             </div>
+
+            @php
+                $weeklyTotal = collect($weeklyUsage)->sum('used_gb');
+                $weeklyPeak = max(0.01, (float) collect($weeklyUsage)->max('used_gb'));
+                $lastSession = $sessions->first();
+                $personalDetails = [
+                    'رقم الهاتف' => $contractRecord?->phone ?? $sub->phone,
+                    'البريد الإلكتروني' => $contractRecord?->email,
+                    'رقم الهوية' => $contractRecord?->national_id,
+                    'المدينة' => $contractRecord?->details['city'] ?? null,
+                    'العنوان' => $contractRecord?->details['address'] ?? null,
+                    'الجنسية' => $contractRecord?->details['nationality'] ?? null,
+                    'طريقة السداد' => $contractRecord?->details['payment_method'] ?? null,
+                    'رقم جواز السفر' => $contractRecord?->details['passport_number'] ?? null,
+                ];
+                $detailLabels = [
+                    'first_name' => 'الاسم الأول', 'father_name' => 'اسم الأب', 'last_name' => 'اسم العائلة',
+                    'automatic_renewal' => 'التجديد التلقائي', 'borrowing_enabled' => 'خدمة السلفة',
+                    'ip_address' => 'عنوان IP', 'sender_device_ip' => 'IP جهاز المرسل',
+                    'mac_address' => 'عنوان MAC', 'primary_dns' => 'DNS الأساسي', 'secondary_dns' => 'DNS الثانوي',
+                    'device_port' => 'منفذ الجهاز', 'download_speed' => 'سرعة التحميل', 'upload_speed' => 'سرعة الرفع',
+                    'start_date' => 'بداية العقد', 'end_date' => 'نهاية العقد', 'notes' => 'ملاحظات',
+                ];
+                $actionLabels = [
+                    'SUBSCRIBER_CONTRACT_CREATED' => 'إنشاء عقد', 'SUBSCRIBER_RECHARGED' => 'شحن باقة',
+                    'SUBSCRIBER_PACKAGE_CHANGED' => 'تغيير باقة', 'EMERGENCY_BORROWING_ACTIVATED' => 'تفعيل سلفة',
+                    'SUBSCRIBER_CREATED' => 'إنشاء حساب مشترك',
+                ];
+            @endphp
+
+            <section class="mx-6 mb-6 rounded-2xl border border-gray-100 overflow-hidden">
+                <div class="border-b border-gray-100 px-5 py-4">
+                    <h4 class="font-bold text-gray-900">استهلاك الأسبوع</h4>
+                    <p class="mt-1 text-xs text-gray-500">الإجمالي: {{ number_format($weeklyTotal, 2) }} GB خلال آخر 7 أيام</p>
+                </div>
+                <div class="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-7">
+                    @forelse ($weeklyUsage as $day)
+                        @php
+                            $barWidth = min(100, ((float) $day['used_gb'] / $weeklyPeak) * 100);
+                        @endphp
+                        <div class="rounded-xl bg-gray-50 p-3">
+                            <div class="flex justify-between text-[11px] text-gray-500"><span>{{ \Illuminate\Support\Carbon::parse($day['date'])->translatedFormat('D') }}</span><span>{{ number_format($day['used_gb'], 2) }} GB</span></div>
+                            <div class="mt-2 h-2 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full bg-purple-600" style="width: {{ $barWidth }}%"></div></div>
+                            <p class="mt-1 text-[10px] text-gray-400">{{ $day['date'] }}</p>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-400">لا توجد بيانات استهلاك أسبوعية.</p>
+                    @endforelse
+                </div>
+            </section>
+
+            <section class="mx-6 mb-6 overflow-hidden rounded-2xl border border-gray-100">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-4">
+                    <div><h4 class="font-bold text-gray-900">جلسات الاتصال</h4><p class="mt-1 text-xs text-gray-500">الجلسات النشطة: {{ $activeSessionCount }} · آخر اتصال: {{ $lastSession?->started_at?->format('Y-m-d H:i') ?? '—' }}</p></div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-gray-50 text-gray-500"><tr><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">بداية الجلسة</th><th class="px-4 py-3">نهاية الجلسة</th><th class="px-4 py-3">IP الجلسة</th><th class="px-4 py-3">MAC المعدّة</th><th class="px-4 py-3">نقطة الوصول</th><th class="px-4 py-3">استهلاك الجلسة</th></tr></thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse ($sessions as $session)
+                                <tr><td class="px-4 py-3">{{ $session->ended_at ? 'منتهية' : 'نشطة' }}</td><td class="px-4 py-3 font-mono">{{ $session->started_at?->format('Y-m-d H:i') }}</td><td class="px-4 py-3 font-mono">{{ $session->ended_at?->format('Y-m-d H:i') ?? '—' }}</td><td class="px-4 py-3 font-mono" dir="ltr">{{ $session->ip_address ?? '—' }}</td><td class="px-4 py-3 font-mono" dir="ltr">{{ $session->mac_address ?? '—' }}</td><td class="px-4 py-3">{{ $session->access_point ?? '—' }}</td><td class="px-4 py-3">↓ {{ number_format((float) $session->download_gb, 2) }} / ↑ {{ number_format((float) $session->upload_gb, 2) }} GB</td></tr>
+                            @empty
+                                <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">لا توجد جلسات مسجلة.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <div class="mx-6 mb-6 grid gap-6 lg:grid-cols-2">
+                <section class="overflow-hidden rounded-2xl border border-gray-100">
+                    <div class="border-b border-gray-100 px-5 py-4"><h4 class="font-bold text-gray-900">البيانات الشخصية والعقد</h4><p class="mt-1 text-xs text-gray-500">رقم العقد: <span class="font-mono">{{ $sub->contractNumber }}</span> · الباقة: {{ $subscription->packageName }} ({{ $subscription->packageId }})</p></div>
+                    <div class="grid gap-3 p-5 sm:grid-cols-2">
+                        <div class="rounded-xl bg-gray-50 p-3"><p class="text-[11px] text-gray-400">تاريخ إنشاء العقد</p><p class="mt-1 text-sm font-semibold">{{ $contractRecord?->created_at?->format('Y-m-d H:i') ?? 'غير مسجل' }}</p></div>
+                        <div class="rounded-xl bg-gray-50 p-3"><p class="text-[11px] text-gray-400">أنشأه</p><p class="mt-1 text-sm font-semibold">{{ $contractRecord?->creator?->name ?? 'غير مسجل' }}</p></div>
+                        @foreach ($personalDetails as $label => $value)
+                            @if (filled($value))<div class="rounded-xl bg-gray-50 p-3"><p class="text-[11px] text-gray-400">{{ $label }}</p><p class="mt-1 break-words text-sm font-semibold">{{ $value }}</p></div>@endif
+                        @endforeach
+                        @foreach (($contractRecord?->details ?? []) as $key => $value)
+                            @if (filled($value) && !in_array($key, ['city','address','nationality','payment_method','passport_number'], true))<div class="rounded-xl bg-gray-50 p-3"><p class="text-[11px] text-gray-400">{{ $detailLabels[$key] ?? str_replace('_', ' ', $key) }}</p><p class="mt-1 break-words text-sm font-semibold">{{ $value }}</p></div>@endif
+                        @endforeach
+                        @if (!$contractRecord)<p class="text-sm text-gray-400 sm:col-span-2">لا توجد بيانات عقد تفصيلية مسجلة لهذا المشترك.</p>@endif
+                    </div>
+                </section>
+
+                <section class="overflow-hidden rounded-2xl border border-gray-100">
+                    <div class="border-b border-gray-100 px-5 py-4"><h4 class="font-bold text-gray-900">الفواتير وعمليات الشحن</h4><p class="mt-1 text-xs text-gray-500">آخر {{ $payments->count() }} عملية</p></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-gray-50 text-gray-500"><tr><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">العملية</th><th class="px-4 py-3">الباقة</th><th class="px-4 py-3">المبلغ</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">نفذها</th></tr></thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @forelse ($payments as $payment)
+                                    <tr><td class="px-4 py-3 font-mono">{{ ($payment->paid_at ?? $payment->created_at)?->format('Y-m-d H:i') }}</td><td class="px-4 py-3">{{ $payment->gatewayLabel() }}</td><td class="px-4 py-3">{{ $packages[$payment->package_id]['name'] ?? $payment->package_id ?? '—' }}</td><td class="px-4 py-3">{{ number_format((float) $payment->amount, 2) }} د.ل</td><td class="px-4 py-3">{{ $payment->statusLabel() }}</td><td class="px-4 py-3">{{ $payment->processor?->name ?? '—' }}</td></tr>
+                                @empty
+                                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">لا توجد عمليات شحن مسجلة.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <section class="mx-6 mb-6 overflow-hidden rounded-2xl border border-gray-100">
+                <div class="border-b border-gray-100 px-5 py-4"><h4 class="font-bold text-gray-900">سجل إجراءات الموظفين والإدارة</h4><p class="mt-1 text-xs text-gray-500">التعديلات والعمليات المسجلة على العقد</p></div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-gray-50 text-gray-500"><tr><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الموظف</th><th class="px-4 py-3">الإجراء</th><th class="px-4 py-3">التفاصيل</th></tr></thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse ($activity as $log)
+                                @php
+                                    $changeValues = collect($log->new_values ?? [])->except('contract_number')->all();
+                                    $oldValues = collect($log->old_values ?? [])->except('contract_number')->all();
+                                @endphp
+                                <tr><td class="whitespace-nowrap px-4 py-3 font-mono">{{ $log->created_at?->format('Y-m-d H:i') }}</td><td class="px-4 py-3">{{ $log->user?->name ?? 'حساب محذوف' }}</td><td class="px-4 py-3 font-semibold">{{ $actionLabels[$log->action] ?? str_replace('_', ' ', $log->action) }}</td><td class="max-w-xl px-4 py-3"><div class="break-words">{{ $log->result === 'success' ? 'تمت العملية' : $log->result }}@if($oldValues) · السابق: {{ json_encode($oldValues, JSON_UNESCAPED_UNICODE) }}@endif @if($changeValues) · الجديد: {{ json_encode($changeValues, JSON_UNESCAPED_UNICODE) }}@endif</div></td></tr>
+                            @empty
+                                <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">لا توجد إجراءات مسجلة لهذا المشترك بعد.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            @if ($sub->equipmentIp)
+                @php
+                    $equipmentHost = str_contains($sub->equipmentIp, ':') ? '['.$sub->equipmentIp.']' : $sub->equipmentIp;
+                @endphp
+                <div class="mx-6 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                    <div>
+                        <p class="text-[11px] font-semibold text-sky-700">IP معدّة المشترك</p>
+                        <p class="mt-1 font-mono text-sm text-gray-900" dir="ltr">{{ $sub->equipmentIp }}</p>
+                    </div>
+                    <a href="http://{{ $equipmentHost }}" target="_blank" rel="noopener noreferrer" class="rounded-xl bg-sky-700 px-4 py-2 text-xs font-bold text-white hover:bg-sky-800">فتح إعدادات المعدّة</a>
+                </div>
+            @endif
 
             <div class="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <form method="POST" action="{{ route('staff.subscribers.recharge') }}" class="rounded-2xl border border-gray-100 p-4 space-y-3">
@@ -123,6 +258,17 @@
                     <button type="submit" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs">تفعيل سلفة طوارئ</button>
                 </form>
             </div>
+            @if (auth()->user()->hasPermission('send_notifications'))
+                <form method="POST" action="{{ route('staff.subscribers.notifications.send', $sub->contractNumber) }}" class="mx-6 mb-6 rounded-2xl border border-purple-100 bg-purple-50/50 p-5 space-y-3">
+                    @csrf
+                    <h4 class="text-sm font-bold text-gray-900">إرسال رسالة للمشترك</h4>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        <input name="title" required maxlength="120" placeholder="عنوان الرسالة" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm">
+                        <textarea name="message" required maxlength="2000" rows="2" placeholder="اكتب الرسالة هنا" class="sm:col-span-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm"></textarea>
+                    </div>
+                    <button class="rounded-xl bg-[#6F42C1] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#5B2BB8]">إرسال إلى بوابة المشترك</button>
+                </form>
+            @endif
         </div>
     @endif
 
@@ -204,55 +350,4 @@
     @endif
 </div>
 
-<div id="subscriberModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative text-right">
-        <div class="flex items-center justify-between border-b border-gray-100 pb-4">
-            <h3 class="text-lg font-bold text-gray-900">إضافة حساب مشترك في البوابة</h3>
-            <button id="closeSubscriberModal" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1">×</button>
-        </div>
-        <form method="POST" action="{{ route('staff.subscribers.store') }}" class="space-y-4">
-            @csrf
-            <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">الاسم الكامل</label>
-                <input type="text" name="name" value="{{ old('name') }}" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">اسم المستخدم</label>
-                <input type="text" name="username" value="{{ old('username') }}" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono dir-ltr text-right">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">رقم الهاتف</label>
-                <input type="text" name="phone" value="{{ old('phone') }}" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono dir-ltr text-right">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold mb-1">كلمة المرور</label>
-                    <input type="password" name="password" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold mb-1">التأكيد</label>
-                    <input type="password" name="password_confirmation" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs">
-                </div>
-            </div>
-            <div class="pt-4 flex justify-end gap-3 border-t">
-                <button id="cancelSubscriberModal" type="button" class="px-5 py-2.5 bg-gray-100 rounded-xl text-xs font-semibold">إلغاء</button>
-                <button type="submit" class="px-6 py-2.5 bg-[#6F42C1] text-white font-bold rounded-xl text-xs">إنشاء الحساب</button>
-            </div>
-        </form>
-    </div>
-</div>
 @endsection
-
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('subscriberModal');
-        const open = () => modal.classList.remove('hidden');
-        const close = () => modal.classList.add('hidden');
-        document.getElementById('openSubscriberModal')?.addEventListener('click', open);
-        document.getElementById('closeSubscriberModal')?.addEventListener('click', close);
-        document.getElementById('cancelSubscriberModal')?.addEventListener('click', close);
-        @if ($errors->any()) open(); @endif
-    });
-</script>
-@endpush

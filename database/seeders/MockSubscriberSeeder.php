@@ -27,6 +27,7 @@ class MockSubscriberSeeder extends Seeder
                 'contract_number' => 'TEST-100001',
                 'name' => 'خالد محمد عبد الله',
                 'phone' => '0912345678',
+                'equipment_ip' => '192.0.2.10',
                 'status' => 'ACTIVE',
                 'current_package_id' => 'PKG-100',
                 'current_package_name' => 'ميقا 100G',

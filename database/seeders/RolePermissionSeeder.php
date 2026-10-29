@@ -160,6 +160,7 @@ class RolePermissionSeeder extends Seeder
             'view_payments',
             'view_subscription_requests', 'manage_subscription_requests',
             'view_transfer_requests', 'manage_transfer_requests',
+            'send_notifications',
             'view_dashboard',
         ])->pluck('id');
 

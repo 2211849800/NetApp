@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             StaffUserSeeder::class,
             MockPackageSeeder::class,
             MockSubscriberSeeder::class,
+            MockSubscriberSessionSeeder::class,
             OperationalDemoSeeder::class,
             UsageSnapshotSeeder::class,
         ]);

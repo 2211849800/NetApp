@@ -17,6 +17,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\Audit\AuditLogService;
 use App\Services\Employee\EmployeeWalletService;
+use App\Services\Subscriber\SubscriberNotificationService;
 use Illuminate\Support\Str;
 
 class SubscriberOperationsService
@@ -25,6 +26,7 @@ class SubscriberOperationsService
         private readonly SubscriberProviderInterface $subscriberProvider,
         private readonly AuditLogService $auditLog,
         private readonly EmployeeWalletService $wallet,
+        private readonly SubscriberNotificationService $notifications,
     ) {}
 
     /**
@@ -98,6 +100,13 @@ class SubscriberOperationsService
             'package_id' => $packageId,
             'transaction_id' => $result->transactionId,
         ], actor: $actor);
+
+        $this->notifications->notifyRecharge(
+            $contractNumber,
+            $package['name'] ?? $packageId,
+            'payment-'.$payment->id,
+            $actor,
+        );
 
         return $result;
     }

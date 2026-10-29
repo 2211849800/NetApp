@@ -183,6 +183,7 @@ Route::middleware(['auth', 'role:subscriber'])
         Route::get('/dashboard/data', [\App\Http\Controllers\Subscriber\DashboardController::class, 'data'])->name('dashboard.data');
         Route::post('/recharge', [\App\Http\Controllers\Subscriber\DashboardController::class, 'recharge'])->name('recharge.submit');
         Route::post('/borrow', [\App\Http\Controllers\Subscriber\DashboardController::class, 'activateBorrowing'])->name('borrow.submit');
+        Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Subscriber\DashboardController::class, 'markNotificationRead'])->name('notifications.read');
         Route::post('/complaints', [\App\Http\Controllers\Subscriber\DashboardController::class, 'storeComplaint'])->name('complaints.submit');
     });
 
@@ -215,10 +216,12 @@ Route::middleware(['auth', 'staff'])
 
             Route::get('/subscribers', [SubscriberController::class, 'index'])->name('subscribers.index');
             Route::get('/subscribers/create', [SubscriberController::class, 'create'])->name('subscribers.create');
-            Route::post('/subscribers', [SubscriberController::class, 'store'])->name('subscribers.store');
             Route::post('/subscribers/recharge', [SubscriberController::class, 'recharge'])->name('subscribers.recharge');
             Route::post('/subscribers/change-package', [SubscriberController::class, 'changePackage'])->name('subscribers.change-package');
             Route::post('/subscribers/activate-borrowing', [SubscriberController::class, 'activateBorrowing'])->name('subscribers.activate-borrowing');
+            Route::post('/subscribers/{contractNumber}/notifications', [SubscriberController::class, 'sendMessage'])
+                ->middleware('permission:send_notifications')
+                ->name('subscribers.notifications.send');
         });
 
         Route::post('/subscribers/contracts', [SubscriberController::class, 'storeContract'])
